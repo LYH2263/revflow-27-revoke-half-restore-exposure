@@ -21,18 +21,19 @@ function yuan(cents) {
 <template>
   <div>
     <h1>正向流水</h1>
-    <p class="lead">已装载的正向入账；归并后状态变为「已归并」。剩余敞口已扣除仍计入的冲正（已撤销冲正回补敞口）。</p>
+    <p class="lead">已装载的正向入账；归并后状态变为「已归并」。剩余敞口已扣除仍计入的冲正（已撤销冲正回补敞口），撤销恢复额与敞口同源派生自恢复证明。</p>
     <p v-if="err" class="msg">{{ err }}</p>
     <div class="panel">
       <table>
         <thead>
-          <tr><th>流水键</th><th>账户</th><th>金额（元）</th><th>剩余敞口（元）</th><th>业务单</th><th>状态</th><th>入账时间</th></tr>
+          <tr><th>流水键</th><th>账户</th><th>金额（元）</th><th>撤销恢复（元）</th><th>剩余敞口（元）</th><th>业务单</th><th>状态</th><th>入账时间</th></tr>
         </thead>
         <tbody>
           <tr v-for="e in rows" :key="e.id">
             <td>{{ e.entry_key }}</td>
             <td>{{ e.account_code }}</td>
             <td>{{ yuan(e.amount_cents) }}</td>
+            <td class="mono" :class="{ dim: !e.restored_cents }">{{ e.restored_cents ? yuan(e.restored_cents) : '—' }}</td>
             <td class="mono">{{ yuan(e.remaining_cents) }}</td>
             <td>{{ e.biz_ref }}</td>
             <td><span class="tag" :class="{ on: e.status === '已归并' }">{{ e.status }}</span></td>

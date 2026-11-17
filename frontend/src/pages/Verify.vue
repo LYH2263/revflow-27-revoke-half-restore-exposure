@@ -55,7 +55,7 @@ function yuan(cents) {
       <table>
         <thead>
           <tr>
-            <th>#</th><th>归并#</th><th>流水净额</th><th>余额合计</th><th>隔离数</th><th>撤销笔数</th><th>撤销事件数</th><th>一致</th><th>时间</th>
+            <th>#</th><th>归并#</th><th>流水净额</th><th>余额合计</th><th>隔离数</th><th>撤销笔数</th><th>撤销恢复额（元）</th><th>一致</th><th>时间</th>
           </tr>
         </thead>
         <tbody>

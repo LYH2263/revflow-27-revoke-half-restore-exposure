@@ -16,6 +16,12 @@ def get_revocations():
     return svc.list_revocations()
 
 
+@router.get("/revocations/{revocation_id}/proof")
+def get_revocation_proof(revocation_id: int):
+    """按撤销事件 id 只读查询恢复证明（冲正键、敞口前后、余额前后）。"""
+    return svc.get_revocation_proof(revocation_id)
+
+
 @router.post("/revocations")
 def post_revocation(body: RevokeBody):
     if not body.reversal_key:

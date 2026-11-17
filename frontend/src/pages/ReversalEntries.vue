@@ -39,12 +39,26 @@ async function revoke(entry) {
     const r = await postJson('/api/revocations', { reversal_key: entry.entry_key })
     msg.value =
       `已撤销 ${r.reversal_key}：恢复 ${(r.restored_cents / 100).toFixed(2)} 元，` +
-      `账户余额 ${(r.balance_cents / 100).toFixed(2)}，原单剩余敞口 ${(r.remaining_cents / 100).toFixed(2)}`
+      `账户余额 ${(r.balance_before_cents / 100).toFixed(2)} → ${(r.balance_after_cents / 100).toFixed(2)}，` +
+      `原单剩余敞口 ${(r.exposure_before_cents / 100).toFixed(2)} → ${(r.exposure_after_cents / 100).toFixed(2)}`
     await load()
   } catch (e) {
     err.value = String(e.message || e)
   } finally {
     busyKey.value = ''
+  }
+}
+
+const proof = ref(null)
+const proofErr = ref('')
+
+async function loadProof(id) {
+  proof.value = null
+  proofErr.value = ''
+  try {
+    proof.value = await getJson(`/api/revocations/${id}/proof`)
+  } catch (e) {
+    proofErr.value = String(e.message || e)
   }
 }
 
@@ -89,6 +103,12 @@ function yuan(cents) {
             <td class="evidence">
               <template v-if="revokedByKey[e.entry_key]">
                 <span class="mono">恢复 {{ yuan(revokedByKey[e.entry_key].restored_cents) }}</span>
+                <span class="mono dim">
+                  敞口 {{ yuan(revokedByKey[e.entry_key].exposure_before_cents) }} → {{ yuan(revokedByKey[e.entry_key].exposure_after_cents) }}
+                </span>
+                <span class="mono dim">
+                  余额 {{ yuan(revokedByKey[e.entry_key].balance_before_cents) }} → {{ yuan(revokedByKey[e.entry_key].balance_after_cents) }}
+                </span>
                 <span class="mono dim">{{ revokedByKey[e.entry_key].revoked_at }}</span>
                 <span class="mono dim">{{ revokedByKey[e.entry_key].run_id }}</span>
               </template>
@@ -111,10 +131,14 @@ function yuan(cents) {
     </div>
 
     <div class="panel">
-      <h2>撤销记录</h2>
+      <h2>撤销记录与恢复证明</h2>
       <table>
         <thead>
-          <tr><th>撤销#</th><th>冲正键</th><th>原单键</th><th>账户</th><th>恢复额（元）</th><th>归并#</th><th>运行 id</th><th>时刻</th></tr>
+          <tr>
+            <th>撤销#</th><th>冲正键</th><th>原单键</th><th>账户</th><th>恢复额（元）</th>
+            <th>敞口前（元）</th><th>敞口后（元）</th><th>余额前（元）</th><th>余额后（元）</th>
+            <th>运行 id</th><th>时刻</th><th>证明</th>
+          </tr>
         </thead>
         <tbody>
           <tr v-for="r in revocations" :key="r.id">
@@ -123,13 +147,34 @@ function yuan(cents) {
             <td class="mono">{{ r.target_entry_key }}</td>
             <td>{{ r.account_code }}</td>
             <td>{{ yuan(r.restored_cents) }}</td>
-            <td>{{ r.settle_run_id || '—' }}</td>
+            <td>{{ yuan(r.exposure_before_cents) }}</td>
+            <td>{{ yuan(r.exposure_after_cents) }}</td>
+            <td>{{ yuan(r.balance_before_cents) }}</td>
+            <td>{{ yuan(r.balance_after_cents) }}</td>
             <td class="mono">{{ r.run_id }}</td>
             <td class="mono">{{ r.revoked_at }}</td>
+            <td>
+              <button class="btn secondary small" @click="loadProof(r.id)">查看</button>
+            </td>
           </tr>
-          <tr v-if="!revocations.length"><td colspan="8">暂无撤销记录</td></tr>
+          <tr v-if="!revocations.length"><td colspan="12">暂无撤销记录</td></tr>
         </tbody>
       </table>
+      <p v-if="proofErr" class="msg">{{ proofErr }}</p>
+      <div v-if="proof" class="proof-block">
+        <h3>恢复证明 #{{ proof.proof_id }}（撤销事件 #{{ proof.revocation_id }}）</h3>
+        <dl>
+          <dt>冲正键</dt><dd class="mono">{{ proof.reversal_key }}</dd>
+          <dt>原单键</dt><dd class="mono">{{ proof.target_entry_key }}</dd>
+          <dt>恢复额（元）</dt><dd>{{ yuan(proof.restored_cents) }}</dd>
+          <dt>敞口前 → 后（元）</dt>
+          <dd>{{ yuan(proof.exposure_before_cents) }} → {{ yuan(proof.exposure_after_cents) }}</dd>
+          <dt>余额前 → 后（元）</dt>
+          <dd>{{ yuan(proof.balance_before_cents) }} → {{ yuan(proof.balance_after_cents) }}</dd>
+          <dt>运行 id</dt><dd class="mono">{{ proof.run_id }}</dd>
+          <dt>时刻</dt><dd class="mono">{{ proof.proof_created_at }}</dd>
+        </dl>
+      </div>
     </div>
   </div>
 </template>

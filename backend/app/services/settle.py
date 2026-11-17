@@ -75,7 +75,7 @@ def list_entries(kind: str | None = None) -> list[dict]:
                 """
             ).fetchall()
         out = rows_to_dicts(rows)
-        # 正向：附带剩余敞口（已撤销冲正不计入已冲累计）
+        # 正向：附带剩余敞口（与撤销服务同一口径：仅「已归并」冲正占用敞口）
         used_by_target = {
             r["target_entry_key"]: r["s"]
             for r in conn.execute(
@@ -87,9 +87,33 @@ def list_entries(kind: str | None = None) -> list[dict]:
                 """
             ).fetchall()
         }
+        # 正向：附带撤销恢复证明累计（同源派生自 revoke_restore_proofs）
+        restored_by_target = {
+            r["target_entry_key"]: r["s"]
+            for r in conn.execute(
+                """
+                SELECT target_entry_key, COALESCE(SUM(restored_cents), 0) AS s
+                FROM revoke_restore_proofs
+                GROUP BY target_entry_key
+                """
+            ).fetchall()
+        }
         for e in out:
             if e["kind"] == "正向":
                 e["remaining_cents"] = e["amount_cents"] - used_by_target.get(e["entry_key"], 0)
+                e["restored_cents"] = restored_by_target.get(e["entry_key"], 0)
+            elif e["kind"] == "冲正":
+                # 撤销证明（同源派生自恢复证明表，供冲正页展示）
+                proof = conn.execute(
+                    """
+                    SELECT p.* FROM revoke_restore_proofs p
+                    WHERE p.reversal_key = ?
+                    ORDER BY p.id DESC LIMIT 1
+                    """,
+                    (e["entry_key"],),
+                ).fetchone()
+                if proof:
+                    e["restore_proof"] = dict(proof)
         return out
 
 

@@ -72,8 +72,27 @@ CREATE TABLE IF NOT EXISTS reverse_revocations (
   revoked_at TEXT NOT NULL
 );
 
+-- 撤销恢复证明（只读证据）：每次撤销恰好一行，记录冲正键、原单敞口前后、
+-- 账户余额前后。与撤销事件同事务写入，任一失败整笔回滚。
+CREATE TABLE IF NOT EXISTS revoke_restore_proofs (
+  id INTEGER PRIMARY KEY,
+  revocation_id INTEGER NOT NULL UNIQUE REFERENCES reverse_revocations(id),
+  run_id TEXT NOT NULL,
+  reversal_key TEXT NOT NULL,
+  target_entry_key TEXT NOT NULL,
+  account_id INTEGER NOT NULL REFERENCES accounts(id),
+  restored_cents INTEGER NOT NULL,
+  exposure_before_cents INTEGER NOT NULL,
+  exposure_after_cents INTEGER NOT NULL,
+  balance_before_cents INTEGER NOT NULL,
+  balance_after_cents INTEGER NOT NULL,
+  created_at TEXT NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_reverse_revocations_target
   ON reverse_revocations(target_entry_key);
+CREATE INDEX IF NOT EXISTS idx_revoke_restore_proofs_target
+  ON revoke_restore_proofs(target_entry_key);
 """
 
 

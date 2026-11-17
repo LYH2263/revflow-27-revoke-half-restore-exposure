@@ -381,6 +381,22 @@ tbody tr:hover { background: rgba(36, 87, 197, 0.04); }
 .mono { font-family: var(--mono); font-size: 12px; }
 .dim { color: var(--muted); }
 .evidence { display: flex; flex-direction: column; gap: 2px; }
+.proof-block {
+  margin-top: 18px;
+  padding: 14px 16px;
+  border-left: 3px solid var(--accent);
+  background: var(--paper, transparent);
+}
+.proof-block h3 { margin: 0 0 10px; font-size: 15px; }
+.proof-block dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 16px;
+  margin: 0;
+  font-size: 13px;
+}
+.proof-block dt { color: var(--muted); }
+.proof-block dd { margin: 0; }
 button.small {
   font-size: 12px;
   padding: 6px 11px;
